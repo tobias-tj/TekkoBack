@@ -12,4 +12,11 @@ export interface ManageParentRepo {
     childrenId: number | null;
     error?: string;
   }>;
+  securityPin(
+    pinSecurity: string,
+    parentId: number,
+  ): Promise<{
+    isValid: boolean;
+    parentInfo?: { parentId: number; fullName: string };
+  }>;
 }

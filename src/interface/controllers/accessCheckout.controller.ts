@@ -6,12 +6,15 @@ import { RegisterParent } from '../../usecases/parent_register/register';
 import { RegisterKid } from '../../usecases/kid_register/register';
 import { LoginParent } from '../../usecases/parent_login/login';
 import { logger } from '../../infrastructure/logger';
+import { PinSecurity } from '../../usecases/parent_pin/pin_security';
+import { validationResult } from 'express-validator';
 
 export class AccessCheckoutController {
   constructor(
     private registerParentUseCase: RegisterParent,
     private registerKidUseCase: RegisterKid,
     private loginParentUseCase: LoginParent,
+    private accessPinSecurity: PinSecurity,
   ) {}
 
   async loginCheckoutProcess(req: Request, res: Response, next: NextFunction) {
@@ -121,6 +124,38 @@ export class AccessCheckoutController {
         },
       });
     } catch (error) {
+      next(error);
+    }
+  }
+
+  async securityPin(req: Request, res: Response, next: NextFunction) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { pinSecurity, parentId } = req.body;
+
+      const pinResult = await this.accessPinSecurity.execute(
+        pinSecurity,
+        parentId,
+      );
+
+      if (!pinResult.isValid) {
+        return res.status(401).json({
+          success: false,
+          message: 'PIN inválido o no coincide con el padre/madre',
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'PIN verificado correctamente',
+        parentInfo: pinResult.parentInfo,
+      });
+    } catch (error) {
+      logger.error('Error en securityPin controller:', error);
       next(error);
     }
   }

@@ -1,9 +1,9 @@
 import { ManageParentRepo } from '../../domain/interfaces/repositories/ManageParentRepo';
 
-export class LoginParent {
+export class PinSecurity {
   constructor(private manageParent: ManageParentRepo) {}
 
-  async execute(email: string, password: string) {
-    return await this.manageParent.login(email, password);
+  async execute(pinSecurity: string, parentId: number) {
+    return await this.manageParent.securityPin(pinSecurity, parentId);
   }
 }

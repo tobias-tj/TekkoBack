@@ -7,6 +7,8 @@ import { RegisterKid } from '../../usecases/kid_register/register';
 import { parentRegisterValidation } from '../../domain/interfaces/middleware/parentRegisterValidation';
 import { parentLoginValidation } from '../../domain/interfaces/middleware/parentLoginValidation';
 import { LoginParent } from '../../usecases/parent_login/login';
+import { PinSecurity } from '../../usecases/parent_pin/pin_security';
+import { ParentPinSecurityValidation } from '../../domain/interfaces/middleware/parentPinSecurityValidation';
 
 const router = Router();
 
@@ -15,11 +17,13 @@ const manageKidRepository = new ManageKidRepository();
 const registerParentUseCase = new RegisterParent(manageParentRepository);
 const registerKidUseCase = new RegisterKid(manageKidRepository);
 const loginParentUseCase = new LoginParent(manageParentRepository);
+const securityPinParent = new PinSecurity(manageParentRepository);
 
 const accessCheckoutController = new AccessCheckoutController(
   registerParentUseCase,
   registerKidUseCase,
   loginParentUseCase,
+  securityPinParent,
 );
 
 router.get(
@@ -34,6 +38,13 @@ router.post(
   [...parentRegisterValidation],
   (req: Request, res: Response, next: NextFunction) =>
     accessCheckoutController.registerCheckoutProcess(req, res, next),
+);
+
+router.post(
+  '/securityParent',
+  [...ParentPinSecurityValidation],
+  (req: Request, res: Response, next: NextFunction) =>
+    accessCheckoutController.securityPin(req, res, next),
 );
 
 export { router as accessCheckoutRoutes };

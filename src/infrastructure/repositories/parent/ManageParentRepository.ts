@@ -160,4 +160,45 @@ export class ManageParentRepository implements ManageParentRepo {
       client.release();
     }
   }
+
+  async securityPin(
+    pinSecurity: string,
+    parentId: number,
+  ): Promise<{
+    isValid: boolean;
+    parentInfo?: { parentId: number; fullName: string };
+  }> {
+    const client = await pool.connect();
+    try {
+      logger.info(`Verificando PIN para parentId: ${parentId}`);
+
+      const result = await client.query(
+        `SELECT parent_id, full_name FROM padres 
+         WHERE pin_login = $1 AND parent_id = $2`,
+        [pinSecurity, parentId],
+      );
+
+      if (result.rows.length > 0) {
+        const parent = result.rows[0];
+        logger.info(`PIN válido para parentId: ${parentId}`);
+        return {
+          isValid: true,
+          parentInfo: {
+            parentId: parent.parent_id,
+            fullName: parent.full_name,
+          },
+        };
+      }
+
+      logger.warn(
+        `PIN inválido o parentId no coincide para parentId: ${parentId}`,
+      );
+      return { isValid: false };
+    } catch (error) {
+      logger.error(`Error verificando PIN para parentId: ${parentId}`, error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
 }
