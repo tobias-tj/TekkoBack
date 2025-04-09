@@ -1,7 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { AccessCheckoutController } from '../controllers/accessCheckout.controller';
 import { ManageParentRepository } from '../../infrastructure/repositories/parent/ManageParentRepository';
-import { ManageKidRepository } from '../../infrastructure/kid/ManageKidRepository';
 import { RegisterParent } from '../../usecases/parent_register/register';
 import { RegisterKid } from '../../usecases/kid_register/register';
 import { parentRegisterValidation } from '../../domain/interfaces/middleware/parentRegisterValidation';
@@ -9,6 +8,7 @@ import { parentLoginValidation } from '../../domain/interfaces/middleware/parent
 import { LoginParent } from '../../usecases/parent_login/login';
 import { PinSecurity } from '../../usecases/parent_pin/pin_security';
 import { ParentPinSecurityValidation } from '../../domain/interfaces/middleware/parentPinSecurityValidation';
+import { ManageKidRepository } from '../../infrastructure/repositories/kid/ManageKidRepository';
 
 const router = Router();
 

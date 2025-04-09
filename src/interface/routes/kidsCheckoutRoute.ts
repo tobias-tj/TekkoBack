@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { KidsCheckoutController } from '../controllers/kidsCheckout.controller';
-import { ManageKidRepository } from '../../infrastructure/kid/ManageKidRepository';
 import { GetExperienceKid } from '../../usecases/kid_experience/getExperience';
+import { ManageKidRepository } from '../../infrastructure/repositories/kid/ManageKidRepository';
 
 const router = Router();
 

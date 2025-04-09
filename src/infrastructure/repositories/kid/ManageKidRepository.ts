@@ -1,8 +1,8 @@
-import { CreateKidDto } from '../../domain/interfaces/dto/kids/CreateKidDto';
-import { ExperienceDto } from '../../domain/interfaces/dto/kids/ExperienceDto';
-import { ManageKidRepo } from '../../domain/interfaces/repositories/ManageKidRepo';
-import { pool } from '../database/dbConnection';
-import { logger } from '../logger';
+import { CreateKidDto } from '../../../domain/interfaces/dto/kids/CreateKidDto';
+import { ExperienceDto } from '../../../domain/interfaces/dto/kids/ExperienceDto';
+import { ManageKidRepo } from '../../../domain/interfaces/repositories/ManageKidRepo';
+import { pool } from '../../database/dbConnection';
+import { logger } from '../../logger';
 
 export class ManageKidRepository implements ManageKidRepo {
   async register(createKidDto: CreateKidDto): Promise<number | null> {
