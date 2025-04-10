@@ -6,11 +6,13 @@ import { CreateActivityDto } from '../../domain/interfaces/dto/activity/CreateAc
 import { CreateActivity } from '../../usecases/activity/createActivity';
 import { CreateActivityDetailsDto } from '../../domain/interfaces/dto/activity/CreateActivityDetailsDto';
 import { validationResult } from 'express-validator';
+import { GetActivity } from '../../usecases/activity/getActivity';
 
 export class ActivityCheckoutController {
   constructor(
     private createActivityDetailUseCase: CreateActivityDetails,
     private createActivityUseCase: CreateActivity,
+    private getActivityUseCase: GetActivity,
   ) {}
 
   async createActivityData(req: Request, res: Response, next: NextFunction) {
@@ -74,6 +76,50 @@ export class ActivityCheckoutController {
       });
     } catch (error) {
       logger.error('Error en createActivityData:', error);
+      next(error);
+    }
+  }
+
+  async getAllActivityData(req: Request, res: Response, next: NextFunction) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { dateFilter, parentId, statusFilter } = req.query;
+
+      if (!dateFilter || typeof dateFilter !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: 'El parámetro "dateFilter" es requerido',
+          errorCode: 'BAD_REQUEST',
+        });
+      }
+
+      if (!parentId) {
+        return res.status(400).json({
+          success: false,
+          message: 'El parámetro "parentId" es requerido',
+          errorCode: 'BAD_REQUEST',
+        });
+      }
+
+      logger.info(`Obteniendo actividades para la fecha: ${dateFilter}`);
+
+      const activities = await this.getActivityUseCase.execute(
+        dateFilter,
+        Number(parentId),
+        statusFilter?.toString() || null,
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: `Se encontraron ${activities.length} actividades`,
+        data: activities,
+      });
+    } catch (error) {
+      logger.error('Error en getAllActivityData:', error);
       next(error);
     }
   }
