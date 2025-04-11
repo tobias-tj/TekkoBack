@@ -5,6 +5,7 @@ import { CreateActivityDetails } from '../../usecases/activity/createActivityDet
 import { CreateActivity } from '../../usecases/activity/createActivity';
 import { GetActivity } from '../../usecases/activity/getActivity';
 import { GetActivityByKids } from '../../usecases/activity/getActivityByKid';
+import { UpdateActivityStatusById } from '../../usecases/activity/updateActivityStatusById';
 
 const router = Router();
 
@@ -15,12 +16,16 @@ const createActivityDetails = new CreateActivityDetails(
 const createActivity = new CreateActivity(manageActivityRepository);
 const getActivity = new GetActivity(manageActivityRepository);
 const getActivityKid = new GetActivityByKids(manageActivityRepository);
+const updateActivityStatus = new UpdateActivityStatusById(
+  manageActivityRepository,
+);
 
 const activityCheckoutController = new ActivityCheckoutController(
   createActivityDetails,
   createActivity,
   getActivity,
   getActivityKid,
+  updateActivityStatus,
 );
 
 router.post(
@@ -39,6 +44,12 @@ router.get(
   '/getActivityByKid',
   (req: Request, res: Response, next: NextFunction) =>
     activityCheckoutController.getActivityByKids(req, res, next),
+);
+
+router.put(
+  '/updateActivityStatus',
+  (req: Request, res: Response, next: NextFunction) =>
+    activityCheckoutController.updateActivityStatus(req, res, next),
 );
 
 export { router as activityCheckoutRoutes };

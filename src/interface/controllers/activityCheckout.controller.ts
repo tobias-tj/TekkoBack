@@ -8,6 +8,7 @@ import { CreateActivityDetailsDto } from '../../domain/interfaces/dto/activity/C
 import { validationResult } from 'express-validator';
 import { GetActivity } from '../../usecases/activity/getActivity';
 import { GetActivityByKids } from '../../usecases/activity/getActivityByKid';
+import { UpdateActivityStatusById } from '../../usecases/activity/updateActivityStatusById';
 
 export class ActivityCheckoutController {
   constructor(
@@ -15,6 +16,7 @@ export class ActivityCheckoutController {
     private createActivityUseCase: CreateActivity,
     private getActivityUseCase: GetActivity,
     private getActivityKidUseCase: GetActivityByKids,
+    private updateActivityStatusUseCase: UpdateActivityStatusById,
   ) {}
 
   async createActivityData(req: Request, res: Response, next: NextFunction) {
@@ -168,6 +170,38 @@ export class ActivityCheckoutController {
       });
     } catch (error) {
       logger.error('Error en getAllActivityData:', error);
+      next(error);
+    }
+  }
+
+  async updateActivityStatus(req: Request, res: Response, next: NextFunction) {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    try {
+      const { activityId } = req.body;
+
+      if (!activityId) {
+        return res.status(400).json({
+          success: false,
+          message: 'El parámetro "activityId" es requerido',
+          errorCode: 'BAD_REQUEST',
+        });
+      }
+
+      const activityStatus =
+        await this.updateActivityStatusUseCase.execute(activityId);
+      logger.info('Actividad actualizado con exito');
+      if (activityStatus) {
+        res.status(200).json({ data: 'Actividad actualizado con Exito' });
+      } else {
+        res
+          .status(200)
+          .json({ data: 'No se ha encontrado la Actividad solicitada' });
+      }
+    } catch (error) {
+      logger.error('Error actualizando la Actividad', { error });
       next(error);
     }
   }

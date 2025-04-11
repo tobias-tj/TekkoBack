@@ -142,11 +142,27 @@ export class ManageActivityRepository implements ManageActivityRepo {
         ...row,
         start_activity_time: new Date(row.start_activity_time).toLocaleString(
           'es-PY',
-          { timeZone: 'America/Asuncion' },
+          {
+            timeZone: 'America/Asuncion',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+          },
         ),
         expiration_activity_time: new Date(
           row.expiration_activity_time,
-        ).toLocaleString('es-PY', { timeZone: 'America/Asuncion' }),
+        ).toLocaleString('es-PY', {
+          timeZone: 'America/Asuncion',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        }),
       }));
     } catch (error) {
       logger.error('Error en ActivityRepository.createActivity:', error);
@@ -214,6 +230,34 @@ export class ManageActivityRepository implements ManageActivityRepo {
     } catch (error) {
       logger.error('Error en ActivityRepository.getActivityKids:', error);
       throw error;
+    }
+  }
+
+  async updateActivityStatus(activityId: number): Promise<boolean> {
+    try {
+      logger.info(
+        `Inicia proceso para actualizar la actividad con ID: ${activityId}`,
+      );
+
+      const queryUpdateActivity = `
+        UPDATE Actividades 
+        SET status = 'COMPLETED' 
+        WHERE activity_id = $1
+        RETURNING *;
+      `;
+
+      const result = await pool.query(queryUpdateActivity, [activityId]);
+
+      if (result.rows.length === 0) {
+        logger.warn(`No se encontró ninguna actividad con ID: ${activityId}`);
+        return false;
+      }
+
+      logger.info(`Actividad con ID: ${activityId} actualizada con éxito`);
+      return true;
+    } catch (error) {
+      logger.error('Error actualizando la actividad', { error });
+      throw new Error('Error actualizando la actividad en la base de datos');
     }
   }
 }

@@ -19,4 +19,5 @@ export interface ManageActivityRepo {
     dateFilter: string,
     kidId: number,
   ): Promise<GetActivityKidDto[]>;
+  updateActivityStatus(activityId: number): Promise<boolean>;
 }
