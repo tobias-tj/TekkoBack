@@ -4,6 +4,7 @@ import { ManageActivityRepository } from '../../infrastructure/repositories/acti
 import { CreateActivityDetails } from '../../usecases/activity/createActivityDetails';
 import { CreateActivity } from '../../usecases/activity/createActivity';
 import { GetActivity } from '../../usecases/activity/getActivity';
+import { GetActivityByKids } from '../../usecases/activity/getActivityByKid';
 
 const router = Router();
 
@@ -13,11 +14,13 @@ const createActivityDetails = new CreateActivityDetails(
 );
 const createActivity = new CreateActivity(manageActivityRepository);
 const getActivity = new GetActivity(manageActivityRepository);
+const getActivityKid = new GetActivityByKids(manageActivityRepository);
 
 const activityCheckoutController = new ActivityCheckoutController(
   createActivityDetails,
   createActivity,
   getActivity,
+  getActivityKid,
 );
 
 router.post(
@@ -30,6 +33,12 @@ router.get(
   '/getAllActivity',
   (req: Request, res: Response, next: NextFunction) =>
     activityCheckoutController.getAllActivityData(req, res, next),
+);
+
+router.get(
+  '/getActivityByKid',
+  (req: Request, res: Response, next: NextFunction) =>
+    activityCheckoutController.getActivityByKids(req, res, next),
 );
 
 export { router as activityCheckoutRoutes };

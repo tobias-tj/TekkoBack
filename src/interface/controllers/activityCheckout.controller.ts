@@ -7,12 +7,14 @@ import { CreateActivity } from '../../usecases/activity/createActivity';
 import { CreateActivityDetailsDto } from '../../domain/interfaces/dto/activity/CreateActivityDetailsDto';
 import { validationResult } from 'express-validator';
 import { GetActivity } from '../../usecases/activity/getActivity';
+import { GetActivityByKids } from '../../usecases/activity/getActivityByKid';
 
 export class ActivityCheckoutController {
   constructor(
     private createActivityDetailUseCase: CreateActivityDetails,
     private createActivityUseCase: CreateActivity,
     private getActivityUseCase: GetActivity,
+    private getActivityKidUseCase: GetActivityByKids,
   ) {}
 
   async createActivityData(req: Request, res: Response, next: NextFunction) {
@@ -112,6 +114,52 @@ export class ActivityCheckoutController {
         Number(parentId),
         statusFilter?.toString() || null,
       );
+
+      return res.status(200).json({
+        success: true,
+        message: `Se encontraron ${activities.length} actividades`,
+        data: activities,
+      });
+    } catch (error) {
+      logger.error('Error en getAllActivityData:', error);
+      next(error);
+    }
+  }
+
+  async getActivityByKids(req: Request, res: Response, next: NextFunction) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { dateFilter, kidId } = req.query;
+
+      if (!dateFilter || typeof dateFilter !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: 'El parámetro "dateFilter" es requerido',
+          errorCode: 'BAD_REQUEST',
+        });
+      }
+
+      if (!kidId) {
+        return res.status(400).json({
+          success: false,
+          message: 'El parámetro "kidId" es requerido',
+          errorCode: 'BAD_REQUEST',
+        });
+      }
+
+      logger.info(`Obteniendo actividades para la fecha: ${dateFilter}`);
+
+      const activities = await this.getActivityKidUseCase.execute(
+        dateFilter,
+        Number(kidId),
+      );
+
+      logger.info('Las actividades obtenidas:');
+      logger.info(activities);
 
       return res.status(200).json({
         success: true,
