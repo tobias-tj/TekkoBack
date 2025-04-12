@@ -4,11 +4,13 @@ import { logger } from '../../infrastructure/logger';
 import { GetDetailsProfile } from '../../usecases/settings/get_details_profile';
 import { UpdateProfile } from '../../domain/interfaces/dto/settings/UpdateProfileDto';
 import { UpdateProfileData } from '../../usecases/settings/update_profile_data';
+import { UpdatePinAccountData } from '../../usecases/settings/update_pin_account';
 
 export class SettingsCheckoutController {
   constructor(
     private getProfileDetails: GetDetailsProfile,
     private updateProfileData: UpdateProfileData,
+    private updatePinAccountData: UpdatePinAccountData,
   ) {}
 
   async getDetailsProfile(req: Request, res: Response, next: NextFunction) {
@@ -77,6 +79,37 @@ export class SettingsCheckoutController {
       }
     } catch (error) {
       logger.error('Error actualizando el perfil', { error });
+      next(error);
+    }
+  }
+
+  async updatePinAccount(req: Request, res: Response, next: NextFunction) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+      const { parentId, pinToken, oldToken } = req.body;
+
+      logger.info(
+        `Inicio de actualizando de PIN para Padre con ID: ${parentId}`,
+      );
+
+      const isUpdateSuccess = await this.updatePinAccountData.execute(
+        parentId,
+        pinToken,
+        oldToken,
+      );
+
+      if (isUpdateSuccess) {
+        res
+          .status(200)
+          .json({ success: true, data: 'Pin actualizado con Exito' });
+      } else {
+        res.status(403).json({ data: 'Pin no es valido' });
+      }
+    } catch (error) {
+      logger.error('Error actualizando el pin de los padres', { error });
       next(error);
     }
   }

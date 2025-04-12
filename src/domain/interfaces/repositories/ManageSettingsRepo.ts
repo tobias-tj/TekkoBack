@@ -7,4 +7,9 @@ export interface ManageSettingsRepo {
     childrenId: number,
   ): Promise<GetProfileDto>;
   updateProfileData(profileUpdateDto: UpdateProfile): Promise<boolean>;
+  updatePinAccount(
+    parentId: number,
+    pinToken: string,
+    oldToken: string,
+  ): Promise<boolean>;
 }

@@ -103,4 +103,52 @@ export class ManageSettingsRepository implements ManageSettingsRepo {
       client.release();
     }
   }
+
+  async updatePinAccount(
+    parentId: number,
+    pinToken: string,
+    oldToken: string,
+  ): Promise<boolean> {
+    try {
+      logger.info(
+        `Inicia proceso para actualizar el pin con parent ID: ${parentId}`,
+      );
+
+      // 1. Verificar si el oldToken coincide con el guardado
+      const querySelectOldPin = `
+        SELECT pin_login FROM padres WHERE parent_id = $1;
+      `;
+      const result = await pool.query(querySelectOldPin, [parentId]);
+
+      if (result.rowCount === 0) {
+        logger.warn(`No se encontró ningún padre con ID: ${parentId}`);
+        return false;
+      }
+
+      const currentToken = result.rows[0].pin_login;
+
+      if (currentToken !== oldToken) {
+        logger.warn(
+          `El oldToken no coincide para el padre con ID: ${parentId}`,
+        );
+        return false;
+      }
+
+      // 2. Actualizar el token
+      const queryUpdatePin = `
+        UPDATE padres 
+        SET pin_login = $1
+        WHERE parent_id = $2;
+      `;
+      const values = [pinToken, parentId];
+
+      await pool.query(queryUpdatePin, values);
+
+      logger.info(`Padre con ID: ${parentId} actualizado con éxito`);
+      return true;
+    } catch (error) {
+      logger.error('Error actualizando el pin de los padres', { error });
+      throw new Error('Error actualizando el pin en la base de datos');
+    }
+  }
 }
