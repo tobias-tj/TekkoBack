@@ -7,6 +7,7 @@ import { kidsCheckoutRoutes } from '../interface/routes/kidsCheckoutRoute';
 import { activityCheckoutRoutes } from '../interface/routes/activityCheckoutRoutes';
 import { settingsCheckoutRoutes } from '../interface/routes/settingsCheckoutRoute';
 import { donationCheckoutRoutes } from '../interface/routes/donationCheckoutRoute';
+import { tasksCheckoutRoutes } from '../interface/routes/tasksCheckoutRoute';
 
 const app = express();
 app.use(cors());
@@ -19,6 +20,7 @@ app.use(
   activityCheckoutRoutes,
   settingsCheckoutRoutes,
   donationCheckoutRoutes,
+  tasksCheckoutRoutes,
 );
 app.use(errorHandler);
 // setupSwagger(app);
