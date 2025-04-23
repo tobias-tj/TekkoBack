@@ -4,11 +4,14 @@ import { NextFunction, Request, Response } from 'express';
 import { CreateTaskDto } from '../../domain/interfaces/dto/tasks/CreateTaskDto';
 import { logger } from '../../infrastructure/logger';
 import { UpdateStatus } from '../../usecases/tasks/update_status';
+import { GetTasksByKid } from '../../usecases/tasks/get_tasks_by_kid';
+import { GetTaskListByKidResponse } from '../../domain/interfaces/dto/tasks/GetTaskListByKidResponse';
 
 export class TasksCheckoutController {
   constructor(
     private createTaskUseCase: CreateTasks,
     private updateStatusTaskUseCase: UpdateStatus,
+    private getTasksByKidUseCase: GetTasksByKid,
   ) {}
 
   async createTaskData(req: Request, res: Response, next: NextFunction) {
@@ -85,6 +88,33 @@ export class TasksCheckoutController {
       }
     } catch (error) {
       logger.error('Error en updateStatusTask:', error);
+      next(error);
+    }
+  }
+
+  async getTaskByKids(req: Request, res: Response, next: NextFunction) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { childId } = req.body;
+
+      const tasks = await this.getTasksByKidUseCase.execute(Number(childId));
+
+      const getTaskListByKidResponse = new GetTaskListByKidResponse(
+        tasks.pendingTasks,
+        tasks.tasks,
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: `Se encontraron ${tasks.tasks.length} tareas`,
+        data: getTaskListByKidResponse,
+      });
+    } catch (error) {
+      logger.error('Error en getTaskByKids:', error);
       next(error);
     }
   }

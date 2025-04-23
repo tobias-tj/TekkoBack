@@ -1,4 +1,5 @@
 import { CreateTaskDto } from '../../../domain/interfaces/dto/tasks/CreateTaskDto';
+import { GetTasksKidDto } from '../../../domain/interfaces/dto/tasks/GetTasksKidDto';
 import { ManageTaskRepo } from '../../../domain/interfaces/repositories/ManageTaskRepo';
 import { pool } from '../../database/dbConnection';
 import { logger } from '../../logger';
@@ -70,6 +71,50 @@ export class ManageTaskRepository implements ManageTaskRepo {
     } catch (error) {
       logger.error('Error en TaskRepository.updateStatusTask:', { error });
       throw new Error('Error actualizando la tarea en la base de datos');
+    }
+  }
+
+  async getTasksByKid(
+    childId: number,
+  ): Promise<{ pendingTasks: number; tasks: GetTasksKidDto[] }> {
+    try {
+      logger.info(
+        `Inicia proceso para obtener las tareas por ID Kid: ${childId}`,
+      );
+
+      // Consulta para obtener las tareas
+      const queryGetTasks = `
+          SELECT 
+            task_id AS taskId,
+            number1,
+            number2,
+            operation,
+            correct_answer AS correctAnswer,
+            is_completed AS isCompleted,
+            child_answer AS childAnswer
+          FROM tareas
+          WHERE child_id = $1;
+        `;
+
+      const tasksResult = await pool.query(queryGetTasks, [childId]);
+
+      // Consulta para obtener el conteo de tareas pendientes
+      const queryPending = `
+          SELECT COUNT(*) AS pendingTasks
+          FROM tareas
+          WHERE child_id = $1 AND is_completed = false;
+        `;
+
+      const pendingResult = await pool.query(queryPending, [childId]);
+      const pendingTasks = parseInt(pendingResult.rows[0].pendingtasks, 10);
+
+      return {
+        pendingTasks,
+        tasks: tasksResult.rows,
+      };
+    } catch (error) {
+      logger.error('Error en TaskRepository.getTasksByKid:', error);
+      throw error;
     }
   }
 }

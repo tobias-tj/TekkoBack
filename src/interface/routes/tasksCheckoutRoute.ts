@@ -5,6 +5,8 @@ import { TasksCheckoutController } from '../controllers/tasksCheckout.controller
 import { createTaskValidation } from '../../domain/interfaces/middleware/createTaskValidation';
 import { updateStatusTaskValidation } from '../../domain/interfaces/middleware/updateStatusTaskValidation';
 import { UpdateStatus } from '../../usecases/tasks/update_status';
+import { getTaskByKidsValidation } from '../../domain/interfaces/middleware/getTaskByKidsValidation';
+import { GetTasksByKid } from '../../usecases/tasks/get_tasks_by_kid';
 
 const router = Router();
 
@@ -14,9 +16,12 @@ const createTask = new CreateTasks(manageTaskRepository);
 
 const updateStatusTask = new UpdateStatus(manageTaskRepository);
 
+const getTasksByChildId = new GetTasksByKid(manageTaskRepository);
+
 const taskCheckoutController = new TasksCheckoutController(
   createTask,
   updateStatusTask,
+  getTasksByChildId,
 );
 
 router.post(
@@ -31,6 +36,13 @@ router.put(
   [...updateStatusTaskValidation],
   (req: Request, res: Response, next: NextFunction) =>
     taskCheckoutController.updateStatusTaskData(req, res, next),
+);
+
+router.get(
+  '/getTaskByKid',
+  [...getTaskByKidsValidation],
+  (req: Request, res: Response, next: NextFunction) =>
+    taskCheckoutController.getTaskByKids(req, res, next),
 );
 
 export { router as tasksCheckoutRoutes };
