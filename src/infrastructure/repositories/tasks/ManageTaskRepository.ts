@@ -39,4 +39,37 @@ export class ManageTaskRepository implements ManageTaskRepo {
       throw error;
     }
   }
+
+  async updateStatusTask(
+    taskId: number,
+    childAnswer: number,
+  ): Promise<boolean> {
+    try {
+      logger.info(
+        `Inicia proceso para actualizar estado de la tarea con ID: ${taskId}`,
+      );
+
+      const queryUpdateTask = `
+            UPDATE tareas
+            SET
+                is_completed = TRUE,
+                child_answer = $1
+            WHERE task_id = $2
+            RETURNING *;
+        `;
+
+      const result = await pool.query(queryUpdateTask, [childAnswer, taskId]);
+
+      if (result.rows.length === 0) {
+        logger.warn(`No se encontró ninguna tarea con ID: ${taskId}`);
+        return false;
+      }
+
+      logger.info(`Tarea con ID: ${taskId} actualizada con éxito`);
+      return true;
+    } catch (error) {
+      logger.error('Error en TaskRepository.updateStatusTask:', { error });
+      throw new Error('Error actualizando la tarea en la base de datos');
+    }
+  }
 }
