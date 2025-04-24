@@ -99,7 +99,7 @@ export class TasksCheckoutController {
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { childId } = req.body;
+      const { childId } = req.query;
 
       const tasks = await this.getTasksByKidUseCase.execute(Number(childId));
 
