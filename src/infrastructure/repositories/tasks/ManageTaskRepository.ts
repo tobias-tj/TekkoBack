@@ -93,7 +93,8 @@ export class ManageTaskRepository implements ManageTaskRepo {
             is_completed AS isCompleted,
             child_answer AS childAnswer
           FROM tareas
-          WHERE child_id = $1;
+          WHERE child_id = $1
+          ORDER BY created_at DESC;
         `;
 
       const tasksResult = await pool.query(queryGetTasks, [childId]);
