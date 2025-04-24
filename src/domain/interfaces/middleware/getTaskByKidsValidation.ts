@@ -1,7 +1,7 @@
-import { body } from 'express-validator';
+import { query } from 'express-validator';
 
 export const getTaskByKidsValidation = [
-  body('childId')
+  query('childId')
     .notEmpty()
     .withMessage('El Child ID es obligatorio')
     .isInt({ min: 1 })
