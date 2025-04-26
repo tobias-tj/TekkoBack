@@ -6,6 +6,7 @@ import { logger } from '../../infrastructure/logger';
 import { UpdateStatus } from '../../usecases/tasks/update_status';
 import { GetTasksByKid } from '../../usecases/tasks/get_tasks_by_kid';
 import { GetTaskListByKidResponse } from '../../domain/interfaces/dto/tasks/GetTaskListByKidResponse';
+import { decodeToken } from '../../domain/interfaces/middleware/jwtMiddleware';
 
 export class TasksCheckoutController {
   constructor(
@@ -22,18 +23,35 @@ export class TasksCheckoutController {
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const {
-        parentId,
-        childrenId,
-        number1,
-        number2,
-        operation,
-        correctAnswer,
-      } = req.body;
+      logger.info('Comienza flujo createTaskData');
+
+      const authHeader = req.headers.authorization;
+
+      const token =
+        authHeader && authHeader.startsWith('Bearer ')
+          ? authHeader.substring(7)
+          : null;
+
+      if (!token) {
+        return res.status(401);
+      }
+
+      const decoded = decodeToken(token);
+      logger.info(decoded);
+
+      if (!decoded?.parentId || !decoded?.childrenId || !decoded?.email) {
+        return res
+          .status(401)
+          .json({ error: 'Error autenticando Token, faltan datos' });
+      }
+
+      logger.info('Validacion de token cumplida exitosamente');
+
+      const { number1, number2, operation, correctAnswer } = req.body;
 
       const createTaskDto = new CreateTaskDto(
-        parentId,
-        childrenId,
+        Number(decoded.parentId),
+        decoded.childrenId,
         number1,
         number2,
         operation,
@@ -72,6 +90,28 @@ export class TasksCheckoutController {
         return res.status(400).json({ errors: errors.array() });
       }
 
+      const authHeader = req.headers.authorization;
+
+      const token =
+        authHeader && authHeader.startsWith('Bearer ')
+          ? authHeader.substring(7)
+          : null;
+
+      if (!token) {
+        return res.status(401);
+      }
+
+      const decoded = decodeToken(token);
+      logger.info(decoded);
+
+      if (!decoded?.parentId || !decoded?.childrenId || !decoded?.email) {
+        return res
+          .status(401)
+          .json({ error: 'Error autenticando Token, faltan datos' });
+      }
+
+      logger.info('Validacion de token cumplida exitosamente');
+
       const { taskId, childAnswer } = req.body;
 
       const taskStatus = await this.updateStatusTaskUseCase.execute(
@@ -99,9 +139,29 @@ export class TasksCheckoutController {
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { childId } = req.query;
+      const authHeader = req.headers.authorization;
 
-      const tasks = await this.getTasksByKidUseCase.execute(Number(childId));
+      const token =
+        authHeader && authHeader.startsWith('Bearer ')
+          ? authHeader.substring(7)
+          : null;
+
+      if (!token) {
+        return res.status(401);
+      }
+
+      const decoded = decodeToken(token);
+      logger.info(decoded);
+
+      if (!decoded?.parentId || !decoded?.childrenId || !decoded?.email) {
+        return res
+          .status(401)
+          .json({ error: 'Error autenticando Token, faltan datos' });
+      }
+
+      logger.info('Validacion de token cumplida exitosamente');
+
+      const tasks = await this.getTasksByKidUseCase.execute(decoded.childrenId);
 
       const getTaskListByKidResponse = new GetTaskListByKidResponse(
         tasks.pendingTasks,

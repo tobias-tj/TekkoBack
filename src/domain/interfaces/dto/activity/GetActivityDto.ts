@@ -26,14 +26,6 @@ export class GetActivityDto {
   @IsNotEmpty()
   activity_id: number;
 
-  @IsNumber()
-  @IsNotEmpty()
-  children_id: number;
-
-  @IsNumber()
-  @IsNotEmpty()
-  parent_id: number;
-
   @IsString()
   @IsNotEmpty()
   status: string;
@@ -46,8 +38,6 @@ export class GetActivityDto {
     description_activity: string,
     experience_activity: number,
     activity_id: number,
-    children_id: number,
-    parent_id: number,
     status: string,
   ) {
     this.activity_detail_id = activity_detail_id;
@@ -57,8 +47,6 @@ export class GetActivityDto {
     this.description_activity = description_activity;
     this.experience_activity = experience_activity;
     this.activity_id = activity_id;
-    this.children_id = children_id;
-    this.parent_id = parent_id;
     this.status = status;
   }
 }

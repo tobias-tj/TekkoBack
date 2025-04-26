@@ -8,6 +8,11 @@ import { LoginParent } from '../../usecases/parent_login/login';
 import { logger } from '../../infrastructure/logger';
 import { PinSecurity } from '../../usecases/parent_pin/pin_security';
 import { validationResult } from 'express-validator';
+import jwt from 'jsonwebtoken';
+import {
+  decodeToken,
+  SECRET_KEY,
+} from '../../domain/interfaces/middleware/jwtMiddleware';
 
 export class AccessCheckoutController {
   constructor(
@@ -47,14 +52,23 @@ export class AccessCheckoutController {
         });
       }
 
+      const token = jwt.sign(
+        {
+          parentId: loginResult.parentId,
+          childrenId: loginResult.childrenId,
+          email: email,
+        },
+        SECRET_KEY || '',
+      );
+
+      logger.info('El token generado exitosamente');
+
       // Login exitoso
       return res.status(200).json({
         success: true,
         message: 'Login exitoso',
         data: {
-          parentId: loginResult.parentId,
-          childrenId: loginResult.childrenId,
-          // Considera incluir un token JWT aquí si implementas autenticación
+          token,
         },
       });
     } catch (error) {
@@ -115,12 +129,22 @@ export class AccessCheckoutController {
         });
       }
 
+      const token = jwt.sign(
+        {
+          parentId: parentResult.parentId,
+          childrenId: kidId,
+          email: email,
+        },
+        SECRET_KEY || '',
+      );
+
+      logger.info('El token generado exitosamente');
+
       return res.status(201).json({
         success: true,
         message: 'Registro completado exitosamente',
         data: {
-          parentId: parentResult.parentId,
-          childrenId: kidId,
+          token,
         },
       });
     } catch (error) {
@@ -135,11 +159,31 @@ export class AccessCheckoutController {
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { pinSecurity, parentId } = req.body;
+      const { pinSecurity } = req.body;
+
+      const authHeader = req.headers.authorization;
+
+      const token =
+        authHeader && authHeader.startsWith('Bearer ')
+          ? authHeader.substring(7)
+          : null;
+
+      if (!token) {
+        return res.status(401);
+      }
+
+      const decoded = decodeToken(token);
+      logger.info(decoded);
+
+      if (!decoded?.parentId || !decoded?.childrenId || !decoded?.email) {
+        return res
+          .status(401)
+          .json({ error: 'Error autenticando Token, faltan datos' });
+      }
 
       const pinResult = await this.accessPinSecurity.execute(
         pinSecurity,
-        parentId,
+        Number(decoded.parentId),
       );
 
       if (!pinResult.isValid) {

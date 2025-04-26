@@ -166,7 +166,7 @@ export class ManageParentRepository implements ManageParentRepo {
     parentId: number,
   ): Promise<{
     isValid: boolean;
-    parentInfo?: { parentId: number; fullName: string };
+    parentInfo?: { fullName: string };
   }> {
     const client = await pool.connect();
     try {
@@ -184,7 +184,6 @@ export class ManageParentRepository implements ManageParentRepo {
         return {
           isValid: true,
           parentInfo: {
-            parentId: parent.parent_id,
             fullName: parent.full_name,
           },
         };

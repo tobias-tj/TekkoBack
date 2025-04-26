@@ -17,6 +17,6 @@ export interface ManageParentRepo {
     parentId: number,
   ): Promise<{
     isValid: boolean;
-    parentInfo?: { parentId: number; fullName: string };
+    parentInfo?: { fullName: string };
   }>;
 }

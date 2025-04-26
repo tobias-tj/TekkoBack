@@ -9,6 +9,7 @@ import { validationResult } from 'express-validator';
 import { GetActivity } from '../../usecases/activity/getActivity';
 import { GetActivityByKids } from '../../usecases/activity/getActivityByKid';
 import { UpdateActivityStatusById } from '../../usecases/activity/updateActivityStatusById';
+import { decodeToken } from '../../domain/interfaces/middleware/jwtMiddleware';
 
 export class ActivityCheckoutController {
   constructor(
@@ -21,12 +22,27 @@ export class ActivityCheckoutController {
 
   async createActivityData(req: Request, res: Response, next: NextFunction) {
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+      const { detail } = req.body;
+
+      const authHeader = req.headers.authorization;
+
+      const token =
+        authHeader && authHeader.startsWith('Bearer ')
+          ? authHeader.substring(7)
+          : null;
+
+      if (!token) {
+        return res.status(401);
       }
 
-      const { detail, children_id, parent_id } = req.body;
+      const decoded = decodeToken(token);
+      logger.info(decoded);
+
+      if (!decoded?.parentId || !decoded?.childrenId || !decoded?.email) {
+        return res
+          .status(401)
+          .json({ error: 'Error autenticando Token, faltan datos' });
+      }
 
       const activityDetailsDto = new CreateActivityDetailsDto({
         start_activity_time: detail.start_activity_time,
@@ -37,7 +53,7 @@ export class ActivityCheckoutController {
       });
 
       logger.info(
-        `Creando actividad para children_id: ${children_id} y parent_id: ${parent_id}`,
+        `Creando actividad para children_id: ${decoded.childrenId} y parent_id: ${decoded.parentId}`,
       );
 
       const { activityDetailId, error } =
@@ -52,8 +68,8 @@ export class ActivityCheckoutController {
 
       const createActivityDto = new CreateActivityDto(
         activityDetailId,
-        children_id,
-        parent_id,
+        decoded.childrenId,
+        Number(decoded.parentId),
         'PENDING',
       );
 
@@ -91,7 +107,7 @@ export class ActivityCheckoutController {
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { dateFilter, parentId, statusFilter } = req.query;
+      const { dateFilter, statusFilter } = req.query;
 
       if (!dateFilter || typeof dateFilter !== 'string') {
         return res.status(400).json({
@@ -101,19 +117,31 @@ export class ActivityCheckoutController {
         });
       }
 
-      if (!parentId) {
-        return res.status(400).json({
-          success: false,
-          message: 'El parámetro "parentId" es requerido',
-          errorCode: 'BAD_REQUEST',
-        });
+      const authHeader = req.headers.authorization;
+
+      const token =
+        authHeader && authHeader.startsWith('Bearer ')
+          ? authHeader.substring(7)
+          : null;
+
+      if (!token) {
+        return res.status(401);
+      }
+
+      const decoded = decodeToken(token);
+      logger.info(decoded);
+
+      if (!decoded?.parentId || !decoded?.childrenId || !decoded?.email) {
+        return res
+          .status(401)
+          .json({ error: 'Error autenticando Token, faltan datos' });
       }
 
       logger.info(`Obteniendo actividades para la fecha: ${dateFilter}`);
 
       const activities = await this.getActivityUseCase.execute(
         dateFilter,
-        Number(parentId),
+        Number(decoded.parentId),
         statusFilter?.toString() || null,
       );
 
@@ -130,12 +158,7 @@ export class ActivityCheckoutController {
 
   async getActivityByKids(req: Request, res: Response, next: NextFunction) {
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-      }
-
-      const { dateFilter, kidId } = req.query;
+      const { dateFilter } = req.query;
 
       if (!dateFilter || typeof dateFilter !== 'string') {
         return res.status(400).json({
@@ -145,19 +168,31 @@ export class ActivityCheckoutController {
         });
       }
 
-      if (!kidId) {
-        return res.status(400).json({
-          success: false,
-          message: 'El parámetro "kidId" es requerido',
-          errorCode: 'BAD_REQUEST',
-        });
+      const authHeader = req.headers.authorization;
+
+      const token =
+        authHeader && authHeader.startsWith('Bearer ')
+          ? authHeader.substring(7)
+          : null;
+
+      if (!token) {
+        return res.status(401);
+      }
+
+      const decoded = decodeToken(token);
+      logger.info(decoded);
+
+      if (!decoded?.parentId || !decoded?.childrenId || !decoded?.email) {
+        return res
+          .status(401)
+          .json({ error: 'Error autenticando Token, faltan datos' });
       }
 
       logger.info(`Obteniendo actividades para la fecha: ${dateFilter}`);
 
       const activities = await this.getActivityKidUseCase.execute(
         dateFilter,
-        Number(kidId),
+        decoded.childrenId,
       );
 
       logger.info('Las actividades obtenidas:');
@@ -188,6 +223,26 @@ export class ActivityCheckoutController {
           message: 'El parámetro "activityId" es requerido',
           errorCode: 'BAD_REQUEST',
         });
+      }
+
+      const authHeader = req.headers.authorization;
+
+      const token =
+        authHeader && authHeader.startsWith('Bearer ')
+          ? authHeader.substring(7)
+          : null;
+
+      if (!token) {
+        return res.status(401);
+      }
+
+      const decoded = decodeToken(token);
+      logger.info(decoded);
+
+      if (!decoded?.parentId || !decoded?.childrenId || !decoded?.email) {
+        return res
+          .status(401)
+          .json({ error: 'Error autenticando Token, faltan datos' });
       }
 
       const activityStatus =

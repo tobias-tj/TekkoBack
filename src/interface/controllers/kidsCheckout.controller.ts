@@ -1,25 +1,35 @@
 import { NextFunction, Request, Response } from 'express';
 import { GetExperienceKid } from '../../usecases/kid_experience/getExperience';
 import { logger } from '../../infrastructure/logger';
-import { validationResult } from 'express-validator';
+import { decodeToken } from '../../domain/interfaces/middleware/jwtMiddleware';
 
 export class KidsCheckoutController {
   constructor(private getExperienceKid: GetExperienceKid) {}
 
   async getExperienceData(req: Request, res: Response, next: NextFunction) {
     try {
-      const { childrenId } = req.query;
+      const authHeader = req.headers.authorization;
 
-      if (!childrenId) {
-        return res.status(400).json({
-          success: false,
-          message: 'El parámetro childrenId es requerido',
-          errorCode: 'BAD_REQUEST',
-        });
+      const token =
+        authHeader && authHeader.startsWith('Bearer ')
+          ? authHeader.substring(7)
+          : null;
+
+      if (!token) {
+        return res.status(401);
+      }
+
+      const decoded = decodeToken(token);
+      logger.info(decoded);
+
+      if (!decoded?.parentId || !decoded?.childrenId || !decoded?.email) {
+        return res
+          .status(401)
+          .json({ error: 'Error autenticando Token, faltan datos' });
       }
 
       const experienceResult = await this.getExperienceKid.execute(
-        Number(childrenId),
+        Number(decoded.childrenId),
       );
 
       return res.status(200).json({

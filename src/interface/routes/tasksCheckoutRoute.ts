@@ -38,11 +38,8 @@ router.put(
     taskCheckoutController.updateStatusTaskData(req, res, next),
 );
 
-router.get(
-  '/getTaskByKid',
-  [...getTaskByKidsValidation],
-  (req: Request, res: Response, next: NextFunction) =>
-    taskCheckoutController.getTaskByKids(req, res, next),
+router.get('/getTaskByKid', (req: Request, res: Response, next: NextFunction) =>
+  taskCheckoutController.getTaskByKids(req, res, next),
 );
 
 export { router as tasksCheckoutRoutes };

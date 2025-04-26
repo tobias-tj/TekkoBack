@@ -107,8 +107,6 @@ export class ManageActivityRepository implements ManageActivityRepo {
                 da.description_activity,
                 da.experience_activity,
                 a.activity_id,
-                a.children_id,
-                a.parent_id,
                 a.status
             FROM 
                 detalles_actividades da
