@@ -12,21 +12,22 @@ export class ManageSettingsRepository implements ManageSettingsRepo {
     try {
       let queryDetailsProfile = `
         SELECT 
-            p.full_name AS parent_name,
-            p.email,
-            n.full_name AS child_name,
-            n.age,
-            COUNT(a.activity_id) FILTER (WHERE a.parent_id = $1) AS total_activities_created_by_parent,
-            COUNT(a.activity_id) FILTER (WHERE a.children_id = $2 AND a.status = 'COMPLETED') AS total_completed_activities_by_child
+        p.full_name AS parent_name,
+        p.email,
+        n.full_name AS child_name,
+        n.age,
+        COUNT(DISTINCT CASE WHEN a.parent_id = $1 THEN a.activity_id END) AS total_activities_created_by_parent,
+        COUNT(DISTINCT CASE WHEN a.children_id = $2 AND a.status = 'COMPLETED' THEN a.activity_id END) AS total_completed_activities_by_child
         FROM 
             padres p
-        JOIN 
-            actividades a ON a.parent_id = p.parent_id OR a.children_id = $2
-        JOIN 
-            ninos n ON n.children_id = $2
+        CROSS JOIN 
+            ninos n
+        LEFT JOIN 
+            actividades a ON (a.parent_id = p.parent_id OR a.children_id = n.children_id)
         WHERE 
-            p.parent_id = $1
-        GROUP BY p.full_name, p.email, n.full_name, n.age;
+            p.parent_id = $1 AND n.children_id = $2
+        GROUP BY 
+            p.full_name, p.email, n.full_name, n.age;
         `;
 
       const values = [parentId, childrenId];
