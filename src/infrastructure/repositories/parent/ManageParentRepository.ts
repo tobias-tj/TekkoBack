@@ -16,7 +16,7 @@ export class ManageParentRepository implements ManageParentRepo {
 
       // Verificar si el email ya existe
       const emailCheck = await client.query(
-        'SELECT 1 FROM padres WHERE email = $1 LIMIT 1',
+        'SELECT 1 FROM padres WHERE LOWER(email) = LOWER($1) LIMIT 1',
         [createParentDto.email],
       );
 
@@ -96,7 +96,7 @@ export class ManageParentRepository implements ManageParentRepo {
       // 1. Verificar credenciales del padre/madre
       const parentQuery = await client.query(
         `SELECT parent_id, password FROM padres 
-         WHERE email = $1`,
+         WHERE LOWER(email) = LOWER($1)`,
         [email],
       );
 
@@ -195,6 +195,87 @@ export class ManageParentRepository implements ManageParentRepo {
       return { isValid: false };
     } catch (error) {
       logger.error(`Error verificando PIN para parentId: ${parentId}`, error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async validEmail(email: string): Promise<boolean> {
+    const client = await pool.connect();
+    try {
+      logger.info('Iniciando proceso de registro para padre/madre');
+      await client.query('BEGIN');
+
+      // Verificar si el email ya existe
+      const emailCheck = await client.query(
+        'SELECT 1 FROM padres WHERE LOWER(email) = LOWER($1) LIMIT 1',
+        [email],
+      );
+
+      if (emailCheck.rows.length > 0) {
+        await client.query('COMMIT');
+        logger.warn(`Email encontrado correctamente: ${email}`);
+        return true;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      await client.query('ROLLBACK');
+      logger.error(`Error verificando el email: ${email}`, error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async updatePassword(email: string, hashedPassword: string): Promise<void> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const result = await client.query(
+        'UPDATE padres SET password = $1 WHERE LOWER(email) = LOWER($2)',
+        [hashedPassword, email],
+      );
+
+      if (result.rowCount === 0) {
+        throw new Error('No se encontró usuario para actualizar la contraseña');
+      }
+
+      await client.query('COMMIT');
+      logger.info(`Contraseña actualizada para el email: ${email}`);
+    } catch (error) {
+      await client.query('ROLLBACK');
+      logger.error('Error actualizando contraseña', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async getPinByIdParent(idParent: number): Promise<string> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const result = await client.query(
+        'SELECT pin_login FROM padres WHERE parent_id = $1',
+        [idParent],
+      );
+
+      const row = result.rows[0];
+      if (!row) {
+        throw new Error(
+          `No se encontró el PIN para el padre con ID ${idParent}`,
+        );
+      }
+      return row.pin_login;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      logger.error(
+        `Error obteniendo pin del usuario con ID: ${idParent}`,
+        error,
+      );
       throw error;
     } finally {
       client.release();

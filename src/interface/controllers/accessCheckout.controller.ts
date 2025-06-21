@@ -13,6 +13,9 @@ import {
   decodeToken,
   SECRET_KEY,
 } from '../../domain/interfaces/middleware/jwtMiddleware';
+import { EmailConfirm } from '../../usecases/parent_email_confirm/emailConfirm';
+import { ResetPassword } from '../../usecases/paren_reset_password/resetPassword';
+import { SendPinByEmail } from '../../usecases/send_pin_email/send_pin_by_email';
 
 export class AccessCheckoutController {
   constructor(
@@ -20,6 +23,9 @@ export class AccessCheckoutController {
     private registerKidUseCase: RegisterKid,
     private loginParentUseCase: LoginParent,
     private accessPinSecurity: PinSecurity,
+    private emailConfirm: EmailConfirm,
+    private resetPasswordAccount: ResetPassword,
+    private sendPinByEmail: SendPinByEmail,
   ) {}
 
   async loginCheckoutProcess(req: Request, res: Response, next: NextFunction) {
@@ -200,6 +206,74 @@ export class AccessCheckoutController {
       });
     } catch (error) {
       logger.error('Error en securityPin controller:', error);
+      next(error);
+    }
+  }
+
+  async recoverAccount(req: Request, res: Response, next: NextFunction) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { emailAccount } = req.body;
+
+      const emailValid = await this.emailConfirm.execute(emailAccount);
+
+      if (!emailValid) {
+        return res.status(409).json({
+          success: false,
+          message: 'El correo electronico no existe en Tekko',
+        });
+      }
+
+      await this.resetPasswordAccount.execute(emailAccount);
+      return res.status(201).json({
+        success: true,
+        message: 'Nueva contraseña generada y enviada por correo.',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async senderPinByEmail(req: Request, res: Response, next: NextFunction) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const authHeader = req.headers.authorization;
+
+      const token =
+        authHeader && authHeader.startsWith('Bearer ')
+          ? authHeader.substring(7)
+          : null;
+
+      if (!token) {
+        return res.status(401);
+      }
+
+      const decoded = decodeToken(token);
+
+      if (!decoded?.parentId || !decoded?.childrenId || !decoded?.email) {
+        return res
+          .status(401)
+          .json({ error: 'Error autenticando Token, faltan datos' });
+      }
+
+      await this.sendPinByEmail.execute(
+        Number(decoded.parentId),
+        decoded.email,
+      );
+
+      return res.status(201).json({
+        success: true,
+        message: 'El pin enviado correctamente.',
+      });
+    } catch (error) {
       next(error);
     }
   }

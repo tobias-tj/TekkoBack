@@ -19,4 +19,7 @@ export interface ManageParentRepo {
     isValid: boolean;
     parentInfo?: { fullName: string };
   }>;
+  validEmail(email: string): Promise<boolean>;
+  updatePassword(email: string, hashedPassword: string): Promise<void>;
+  getPinByIdParent(idParent: number): Promise<string>;
 }
