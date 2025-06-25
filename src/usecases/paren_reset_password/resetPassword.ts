@@ -29,10 +29,6 @@ export class ResetPassword {
       subject: 'Recuperación de contraseña - Tekko',
       html: `${recoveryTemplate(newPassword)}`,
       text: `Hola,\n\nTu nueva contraseña temporal es: ${newPassword}\n\nPor favor, cámbiala luego de ingresar.\n\n© ${new Date().getFullYear()} Tekko App.`,
-      headers: {
-        'X-Category': 'PasswordRecovery',
-        'X-Mailer': 'TekkoApp MailService',
-      },
     });
   }
 }

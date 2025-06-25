@@ -15,10 +15,6 @@ export class SendPinByEmail {
       subject: 'Tu PIN de padres para acceder en Tekko',
       html: `${pinPadresTemplate(pinValue)}`,
       text: `Hola,\n\nTu pin de padres es: ${pinValue}\n\nPor favor, cámbiala luego de ingresar.\n\n© ${new Date().getFullYear()} Tekko App.`,
-      headers: {
-        'X-Category': 'PinParent',
-        'X-Mailer': 'TekkoApp MailService',
-      },
     });
   }
 }
