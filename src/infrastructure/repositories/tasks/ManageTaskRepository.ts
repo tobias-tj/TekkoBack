@@ -118,4 +118,26 @@ export class ManageTaskRepository implements ManageTaskRepo {
       throw error;
     }
   }
+
+  async deleteTasksByKid(childId: number): Promise<boolean> {
+    try {
+      logger.info(`Inicia proceso para eliminar tareas por ID Kid: ${childId}`);
+
+      const query = `DELETE FROM tareas WHERE child_id = $1`;
+      const result = await pool.query(query, [childId]);
+
+      if (result.rowCount === 0) {
+        logger.warn(
+          `No se encontraron tareas para eliminar con ID Kid: ${childId}`,
+        );
+        return false;
+      }
+
+      logger.info(`Tareas eliminadas para el alumno con ID Kid: ${childId}`);
+      return true;
+    } catch (error) {
+      logger.error('Error en TaskRepository.deleteTasksByKid:', error);
+      throw new Error('Error eliminando las tareas en la base de datos');
+    }
+  }
 }

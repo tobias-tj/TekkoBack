@@ -7,4 +7,5 @@ export interface ManageTaskRepo {
   getTasksByKid(
     childId: number,
   ): Promise<{ pendingTasks: number; tasks: GetTasksKidDto[] }>;
+  deleteTasksByKid(childId: number): Promise<boolean>;
 }

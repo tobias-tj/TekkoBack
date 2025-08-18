@@ -7,6 +7,7 @@ import { updateStatusTaskValidation } from '../../domain/interfaces/middleware/u
 import { UpdateStatus } from '../../usecases/tasks/update_status';
 import { getTaskByKidsValidation } from '../../domain/interfaces/middleware/getTaskByKidsValidation';
 import { GetTasksByKid } from '../../usecases/tasks/get_tasks_by_kid';
+import { DeleteTasksByKid } from '../../usecases/tasks/delete_tasks_by_kid';
 
 const router = Router();
 
@@ -18,10 +19,13 @@ const updateStatusTask = new UpdateStatus(manageTaskRepository);
 
 const getTasksByChildId = new GetTasksByKid(manageTaskRepository);
 
+const deleteTaskByKid = new DeleteTasksByKid(manageTaskRepository);
+
 const taskCheckoutController = new TasksCheckoutController(
   createTask,
   updateStatusTask,
   getTasksByChildId,
+  deleteTaskByKid,
 );
 
 router.post(
@@ -40,6 +44,12 @@ router.put(
 
 router.get('/getTaskByKid', (req: Request, res: Response, next: NextFunction) =>
   taskCheckoutController.getTaskByKids(req, res, next),
+);
+
+router.delete(
+  '/deleteTaskByKid',
+  (req: Request, res: Response, next: NextFunction) =>
+    taskCheckoutController.deleteTaskByKid(req, res, next),
 );
 
 export { router as tasksCheckoutRoutes };
