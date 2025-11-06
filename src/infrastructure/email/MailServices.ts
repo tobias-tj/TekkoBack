@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 export class MailService {
-  private SENDER_EMAIL = 'team@yvagacore.tech';
+  private SENDER_EMAIL = 'team@yvagacore.com';
   private API_TOKEN = process.env.MAILTRAP_API_TOKEN!;
 
   async sendEmail({
