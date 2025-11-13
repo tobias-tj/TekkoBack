@@ -77,4 +77,50 @@ export class ManageKidRepository implements ManageKidRepo {
       nextLevel: 2,
     };
   }
+
+  async updateExperience(childrenId: number, points: number): Promise<boolean> {
+    const client = await pool.connect();
+    try {
+      logger.info(
+        `Actualizando experiencia del niño ID: ${childrenId} (+${points} EXP)`,
+      );
+
+      if (!childrenId || childrenId <= 0) {
+        throw new Error('ID de niño inválido');
+      }
+
+      if (!Number.isInteger(points)) {
+        throw new Error('Los puntos deben ser un número entero');
+      }
+
+      await client.query('BEGIN');
+
+      // 🔹 Actualizar la experiencia actual sumando los puntos
+      const updateSql = `
+      UPDATE ninos
+      SET exp = exp + $1
+      WHERE children_id = $2
+      RETURNING exp
+    `;
+      const result = await client.query(updateSql, [points, childrenId]);
+
+      if (result.rowCount === 0) {
+        throw new Error(`No se encontró el niño con ID: ${childrenId}`);
+      }
+
+      await client.query('COMMIT');
+      logger.info(
+        `Experiencia actualizada exitosamente: ${result.rows[0].exp} EXP totales`,
+      );
+      return true;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      logger.error(
+        `Error actualizando experiencia del niño ${childrenId}: ${error}`,
+      );
+      return false;
+    } finally {
+      client.release();
+    }
+  }
 }

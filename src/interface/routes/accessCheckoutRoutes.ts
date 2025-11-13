@@ -80,4 +80,8 @@ router.post(
     accessCheckoutController.senderPinByEmail(req, res, next),
 );
 
+router.get('/versionApp', (req: Request, res: Response, next: NextFunction) =>
+  accessCheckoutController.getAppVersion(req, res, next),
+);
+
 export { router as accessCheckoutRoutes };

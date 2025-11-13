@@ -277,4 +277,21 @@ export class AccessCheckoutController {
       next(error);
     }
   }
+
+  async getAppVersion(req: Request, res: Response, next: NextFunction) {
+    try {
+      const appVersion = {
+        minVersion: process.env.MIN_APP_VERSION,
+        latestVersion: process.env.LATEST_APP_VERSION,
+        forceUpdate: true,
+      };
+      return res.status(200).json({
+        success: true,
+        message: 'Versión de la aplicación obtenida correctamente.',
+        data: appVersion,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
