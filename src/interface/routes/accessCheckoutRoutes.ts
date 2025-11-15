@@ -15,6 +15,7 @@ import { MailService } from '../../infrastructure/email/MailServices';
 import { ParentRecoveryValidation } from '../../domain/interfaces/middleware/parentRecoveryValidation';
 import { senderPinValidation } from '../../domain/interfaces/middleware/senderPinValidation';
 import { SendPinByEmail } from '../../usecases/send_pin_email/send_pin_by_email';
+import { authGoogleValidation } from '../../domain/interfaces/middleware/authGoogleValidation';
 
 const router = Router();
 
@@ -57,6 +58,13 @@ router.post(
   [...parentRegisterValidation],
   (req: Request, res: Response, next: NextFunction) =>
     accessCheckoutController.registerCheckoutProcess(req, res, next),
+);
+
+router.post(
+  '/authGoogle',
+  [...authGoogleValidation],
+  (req: Request, res: Response, next: NextFunction) =>
+    accessCheckoutController.authGoogle(req, res, next),
 );
 
 router.post(

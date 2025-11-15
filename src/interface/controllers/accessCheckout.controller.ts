@@ -16,6 +16,7 @@ import {
 import { EmailConfirm } from '../../usecases/parent_email_confirm/emailConfirm';
 import { ResetPassword } from '../../usecases/paren_reset_password/resetPassword';
 import { SendPinByEmail } from '../../usecases/send_pin_email/send_pin_by_email';
+import googleClient from '../../utils/googleVerifyToken';
 
 export class AccessCheckoutController {
   constructor(
@@ -152,6 +153,120 @@ export class AccessCheckoutController {
         data: {
           token,
         },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async authGoogle(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { idToken } = req.body;
+
+      if (!idToken) {
+        return res.status(400).json({
+          success: false,
+          message: 'El token de Clerk es requerido',
+        });
+      }
+
+      // Verificar token con Google
+      const ticket = await googleClient.verifyIdToken({
+        idToken,
+        audience: process.env.GOOGLE_WEB_CLIENT_ID,
+      });
+
+      const payload = ticket.getPayload();
+
+      if (!payload?.email) {
+        return res.status(400).json({
+          success: false,
+          message: 'Google no proporcionó un email válido',
+        });
+      }
+
+      const email = payload.email;
+      const emailVerified = payload.email_verified;
+      const name = payload.name || 'Sin Nombre';
+
+      if (!emailVerified) {
+        return res.status(401).json({
+          success: false,
+          message: 'El correo no está verificado por Google',
+        });
+      }
+
+      const loginResult =
+        await this.loginParentUseCase.executeLoginGoogle(email);
+
+      if (loginResult.parentId) {
+        const token = jwt.sign(
+          {
+            parentId: loginResult.parentId,
+            childrenId: loginResult.childrenId,
+            email: email,
+          },
+          SECRET_KEY || '',
+        );
+
+        return res.status(200).json({
+          success: true,
+          message: 'Login con Google exitoso',
+          data: { token },
+        });
+      }
+
+      // No existe el usuario, proceder al registro
+      const pinSecurity = generatePinSecurity(8);
+      // Generamos una contraseña aleatoria para cumplir con el DTO
+      const randomPassword = crypto.randomUUID();
+
+      const parentDTO = new CreateParentDto(
+        pinSecurity,
+        email!,
+        randomPassword,
+        name || 'Sin Nombre',
+      );
+
+      const parentResult =
+        await this.registerParentUseCase.executeRegisterGoogle(parentDTO);
+
+      if (!parentResult.parentId) {
+        return res.status(500).json({
+          success: false,
+          message: 'Error al registrar la cuenta del padre con Google',
+        });
+      }
+
+      // Crear un niño por defecto o manejar según la lógica de la aplicación
+      const createKidsDTO = new CreateKidDto(
+        'Niñ@ de ' + (name || 'Sin Nombre'),
+        5, // Edad por defecto o manejar según la lógica
+        parentResult.parentId,
+      );
+
+      const kidId = await this.registerKidUseCase.execute(createKidsDTO);
+
+      if (!kidId) {
+        return res.status(500).json({
+          success: false,
+          message: 'Error al registrar el perfil del niño con Google',
+        });
+      }
+
+      const token = jwt.sign(
+        {
+          parentId: parentResult.parentId,
+          childrenId: kidId,
+          email: email,
+        },
+        SECRET_KEY || '',
+      );
+
+      return res.status(201).json({
+        success: true,
+        message: 'Registro con Google completado exitosamente',
+        data: { token },
       });
     } catch (error) {
       next(error);

@@ -7,4 +7,8 @@ export class RegisterParent {
   async execute(createParentDto: CreateParentDto) {
     return await this.manageParent.register(createParentDto);
   }
+
+  async executeRegisterGoogle(createParentDto: CreateParentDto) {
+    return await this.manageParent.registerGoogle(createParentDto);
+  }
 }
