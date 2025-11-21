@@ -54,6 +54,13 @@ router.get(
 );
 
 router.post(
+  '/loginAdmin',
+  [...parentLoginValidation],
+  (req: Request, res: Response, next: NextFunction) =>
+    accessCheckoutController.loginAdminCheckoutProcess(req, res, next),
+);
+
+router.post(
   '/register',
   [...parentRegisterValidation],
   (req: Request, res: Response, next: NextFunction) =>

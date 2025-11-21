@@ -88,6 +88,72 @@ export class AccessCheckoutController {
     }
   }
 
+  async loginAdminCheckoutProcess(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const { email, password } = req.body;
+
+      const loginResult = await this.loginParentUseCase.executeLoginAdmin(
+        email,
+        password,
+      );
+
+      if (!loginResult.parentId) {
+        let statusCode = 401;
+        let errorMessage = 'Credenciales inválidas';
+
+        if (loginResult.error === 'EMAIL_NOT_EXIST') {
+          errorMessage = 'Email no registrado';
+        } else if (loginResult.error === 'PASSWORD_NOT_FOUND') {
+          errorMessage = 'Contraseña incorrecta';
+        } else if (loginResult.error === 'EMAIL_NOT_ADMIN') {
+          errorMessage = 'Este usuario no tiene permisos de administrador';
+        } else if (loginResult.error === 'PARENT_NOT_FOUND') {
+          statusCode = 404;
+          errorMessage = 'No se encontró perfil del usuario';
+        }
+
+        return res.status(statusCode).json({
+          success: false,
+          message: errorMessage,
+          errorCode: loginResult.error,
+        });
+      }
+
+      const token = jwt.sign(
+        {
+          parentId: loginResult.parentId,
+          email,
+        },
+        SECRET_KEY || '',
+        {
+          expiresIn: '1h',
+        },
+      );
+
+      logger.info('El token generado exitosamente');
+
+      // Login exitoso
+      return res.status(200).json({
+        success: true,
+        message: 'Login exitoso',
+        data: {
+          token,
+        },
+      });
+    } catch (error) {
+      logger.error('Error inesperado en loginAdminCheckoutProcess:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor',
+        errorCode: 'INTERNAL_SERVER_ERROR',
+      });
+    }
+  }
+
   async registerCheckoutProcess(
     req: Request,
     res: Response,

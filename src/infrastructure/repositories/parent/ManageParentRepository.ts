@@ -420,4 +420,92 @@ export class ManageParentRepository implements ManageParentRepo {
       client.release();
     }
   }
+
+  async loginAdmin(
+    email: string,
+    password: string,
+  ): Promise<{ parentId: number | null; error?: string }> {
+    const client = await pool.connect();
+
+    try {
+      logger.info(`Iniciando proceso de loginAdmin para email: ${email}`);
+      await client.query('BEGIN');
+
+      // 1. Verificar credenciales del padre/madre y que sea admin
+      const parentQuery = await client.query(
+        `SELECT parent_id, password FROM padres 
+         WHERE LOWER(email) = LOWER($1) AND isadmin = true`,
+        [email],
+      );
+
+      if (!parentQuery.rows.length) {
+        logger.warn(
+          `Intento de login fallido - Email no encontrado o no es admin: ${email}`,
+        );
+        await client.query('ROLLBACK');
+        return { parentId: null, error: 'EMAIL_NOT_ADMIN' };
+      }
+
+      const parent = parentQuery.rows[0];
+      const passwordMatch = await bcrypt.compare(password, parent.password);
+
+      if (!passwordMatch) {
+        logger.warn(
+          `Intento de login fallido - Contraseña incorrecta para email: ${email}`,
+        );
+        await client.query('ROLLBACK');
+        return {
+          parentId: null,
+          error: 'PASSWORD_NOT_FOUND',
+        };
+      }
+
+      await client.query('COMMIT');
+      logger.info(`Login admin exitoso para parentId: ${parent.parent_id}`);
+      return { parentId: parent.parent_id };
+    } catch (error) {
+      await client.query('ROLLBACK');
+      logger.error(`Error durante loginAdmin para email ${email}:`, error);
+      return { parentId: null, error: 'DATABASE_ERROR' };
+    } finally {
+      client.release();
+    }
+  }
+
+  async isParentAdmin(parentId: number): Promise<{ isAdmin: boolean }> {
+    const client = await pool.connect();
+
+    try {
+      logger.info(`Verificando si parentId ${parentId} es admin`);
+
+      const result = await client.query(
+        `SELECT isadmin 
+       FROM padres 
+       WHERE parent_id = $1
+       LIMIT 1`,
+        [parentId],
+      );
+
+      if (!result.rows.length) {
+        logger.warn(`No se encontró padre con parentId: ${parentId}`);
+        return { isAdmin: false };
+      }
+
+      const isAdmin = result.rows[0].isadmin === true;
+
+      logger.info(
+        `Resultado admin para parentId ${parentId}: ${isAdmin ? 'TRUE' : 'FALSE'}`,
+      );
+
+      return { isAdmin };
+    } catch (error) {
+      logger.error(
+        `Error verificando isadmin para parentId ${parentId}`,
+        error,
+      );
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
 }

@@ -30,4 +30,9 @@ export interface ManageParentRepo {
   validEmail(email: string): Promise<boolean>;
   updatePassword(email: string, hashedPassword: string): Promise<void>;
   getPinByIdParent(idParent: number): Promise<string>;
+  loginAdmin(
+    email: string,
+    password: string,
+  ): Promise<{ parentId: number | null; error?: string }>;
+  isParentAdmin(parentId: number): Promise<{ isAdmin: boolean }>;
 }

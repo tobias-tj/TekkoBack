@@ -9,4 +9,8 @@ export class LoginParent {
   async executeLoginGoogle(email: string) {
     return await this.manageParent.loginGoogle(email);
   }
+
+  async executeLoginAdmin(email: string, password: string) {
+    return await this.manageParent.loginAdmin(email, password);
+  }
 }
