@@ -1,13 +1,9 @@
-// export class GetBooksByLevel {
-//   constructor(private cloudinaryService: CloudinaryServices) {}
+import { ManageBooksRepo } from '../../domain/interfaces/repositories/ManageBooksRepo';
 
-//   async execute(level: string) {
-//     const books = await this.cloudinaryService.getBooksByLevel(level);
+export class GetBooksByLevel {
+  constructor(private manageBooks: ManageBooksRepo) {}
 
-//     if (!books.length) {
-//       throw new Error('No books found for this level');
-//     }
-
-//     return books;
-//   }
-// }
+  async execute(level: number, page: number, limit: number) {
+    return await this.manageBooks.getBooks(level, page, limit);
+  }
+}

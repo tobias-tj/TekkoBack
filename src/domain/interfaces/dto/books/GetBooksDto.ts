@@ -1,8 +1,8 @@
-export interface BookDTO {
+export interface GetBooksDTO {
+  libroId: number;
   nivelId: number;
   titulo: string;
   descripcion?: string;
   totalPaginas: number;
-  pdf: Buffer;
-  portada: string;
+  portada: Buffer;
 }
