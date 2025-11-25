@@ -1,5 +1,6 @@
 import { BookDTO } from '../../../domain/interfaces/dto/books/BooksDto';
 import { GetBooksDTO } from '../../../domain/interfaces/dto/books/GetBooksDto';
+import { GetBooksKidDTO } from '../../../domain/interfaces/dto/books/GetBooksKidDto';
 import { ManageBooksRepo } from '../../../domain/interfaces/repositories/ManageBooksRepo';
 import { pool } from '../../database/dbConnection';
 import { logger } from '../../logger';
@@ -36,10 +37,11 @@ export class ManageBooksRepository implements ManageBooksRepo {
     }
   }
 
-  async getBooks(
+  async getBooksForParent(
     level: number,
     page: number,
     limit: number,
+    childrenId: number,
   ): Promise<{ books: GetBooksDTO[]; total: number; error?: string }> {
     const client = await pool.connect();
 
@@ -49,33 +51,42 @@ export class ManageBooksRepository implements ManageBooksRepo {
       // 1️⃣ Contar total de libros
       const countSql = `
       SELECT COUNT(*) AS total
-      FROM Libros
+      FROM libros
       WHERE nivel_id = $1
     `;
-
       const countResult = await client.query(countSql, [level]);
       const total = Number(countResult.rows[0].total);
 
+      // 2️⃣ Obtener libros + bandera de bloqueo
       const sql = `
-        SELECT 
-          libro_id,
-          titulo,
-          descripcion,
-          portada,
-          nivel_id,
-          total_paginas
-        FROM Libros
-        WHERE nivel_id = $1
-        ORDER BY libro_id ASC
-        LIMIT $2 OFFSET $3
-      `;
+      SELECT 
+        l.libro_id,
+        l.titulo,
+        l.descripcion,
+        l.portada,
+        l.nivel_id,
+        l.total_paginas,
 
-      const result = await client.query(sql, [level, limit, offset]);
+        CASE 
+            WHEN lb.libro_id IS NOT NULL THEN FALSE
+            ELSE TRUE
+        END AS is_visible
 
-      if (!result.rows.length) {
-        logger.warn(`No hay libros encontrados`);
-        return { books: [], total: 0, error: 'NO_BOOKS' };
-      }
+      FROM libros l
+      LEFT JOIN libros_bloqueados lb 
+        ON lb.libro_id = l.libro_id AND lb.children_id = $4
+
+      WHERE l.nivel_id = $1
+      ORDER BY l.libro_id ASC
+      LIMIT $2 OFFSET $3
+    `;
+
+      const result = await client.query(sql, [
+        level,
+        limit,
+        offset,
+        childrenId,
+      ]);
 
       const books: GetBooksDTO[] = result.rows.map((row) => ({
         libroId: row.libro_id,
@@ -84,12 +95,12 @@ export class ManageBooksRepository implements ManageBooksRepo {
         descripcion: row.descripcion,
         totalPaginas: row.total_paginas,
         portada: row.portada,
+        isVisible: row.is_visible,
       }));
 
-      logger.info(`Libros obtenidos para nivel ${level}`);
       return { books, total };
     } catch (error) {
-      logger.error(`Error al obtener libros para el nivel ${level}:`, error);
+      logger.error('Error al obtener libros:', error);
       return { books: [], total: 0, error: 'DATABASE_ERROR' };
     } finally {
       client.release();
@@ -115,6 +126,139 @@ export class ManageBooksRepository implements ManageBooksRepo {
     } catch (error) {
       logger.error('Error al obtener PDF del libro:', error);
       return { pdf: null, error: 'DATABASE_ERROR' };
+    } finally {
+      client.release();
+    }
+  }
+
+  async createBlockBook(
+    childrenId: number,
+    bookId: number,
+  ): Promise<'CREATED' | 'EXISTS' | 'ERROR'> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const query = `
+      INSERT INTO libros_bloqueados (children_id, libro_id)
+      VALUES ($1, $2)
+      ON CONFLICT (children_id, libro_id)
+      DO NOTHING
+      RETURNING id;
+    `;
+
+      const result = await client.query(query, [childrenId, bookId]);
+      await client.query('COMMIT');
+
+      if (result.rows.length === 0) {
+        // No hay return → ya existía
+        return 'EXISTS';
+      }
+
+      return 'CREATED';
+    } catch (error) {
+      await client.query('ROLLBACK');
+      logger.error('Error al bloquear libro:', error);
+      return 'ERROR';
+    } finally {
+      client.release();
+    }
+  }
+
+  async deleteBlockBook(childrenId: number, bookId: number): Promise<boolean> {
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      const query = `
+      DELETE FROM libros_bloqueados
+      WHERE children_id = $1 AND libro_id = $2
+    `;
+
+      const result = await client.query(query, [childrenId, bookId]);
+
+      await client.query('COMMIT');
+
+      if (result.rowCount === 0) {
+        logger.warn(`No se encontro libro a desbloquear ID: ${bookId}`);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      logger.error('Error al desbloquear libro:', error);
+      return false;
+    } finally {
+      client.release();
+    }
+  }
+
+  async getBooksKid(
+    level: number,
+    page: number,
+    limit: number,
+    childrenId: number,
+  ): Promise<{ books: GetBooksKidDTO[]; total: number; error?: string }> {
+    const client = await pool.connect();
+
+    try {
+      const offset = (page - 1) * limit;
+
+      // 1️⃣ Contar cuántos libros reales tiene el niño sin bloqueos
+      const countSql = `
+      SELECT COUNT(*) AS total
+      FROM libros l
+      WHERE l.nivel_id = $1
+      AND l.libro_id NOT IN (
+        SELECT libro_id 
+        FROM libros_bloqueados 
+        WHERE children_id = $2
+      )
+    `;
+      const countResult = await client.query(countSql, [level, childrenId]);
+      const total = Number(countResult.rows[0].total);
+
+      // 2️⃣ Obtener página actual
+      const sql = `
+      SELECT 
+        l.libro_id,
+        l.titulo,
+        l.descripcion,
+        l.portada,
+        l.nivel_id,
+        l.total_paginas
+      FROM libros l
+      WHERE l.nivel_id = $1
+      AND l.libro_id NOT IN (
+        SELECT libro_id 
+        FROM libros_bloqueados 
+        WHERE children_id = $4
+      )
+      ORDER BY l.libro_id ASC
+      LIMIT $2 OFFSET $3
+    `;
+
+      const result = await client.query(sql, [
+        level,
+        limit,
+        offset,
+        childrenId,
+      ]);
+
+      const books: GetBooksKidDTO[] = result.rows.map((row) => ({
+        libroId: row.libro_id,
+        nivelId: row.nivel_id,
+        titulo: row.titulo,
+        descripcion: row.descripcion,
+        totalPaginas: row.total_paginas,
+        portada: row.portada,
+      }));
+
+      return { books, total };
+    } catch (error) {
+      logger.error('Error en getBooksForChild:', error);
+      return { books: [], total: 0, error: 'DATABASE_ERROR' };
     } finally {
       client.release();
     }

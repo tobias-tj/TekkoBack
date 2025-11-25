@@ -12,6 +12,10 @@ import { getBooksByLevelValidator } from '../../domain/interfaces/middleware/get
 import { getBookPdfValidator } from '../../domain/interfaces/middleware/getBookPdfValidation';
 import { GetExperienceKid } from '../../usecases/kid_experience/getExperience';
 import { ManageKidRepository } from '../../infrastructure/repositories/kid/ManageKidRepository';
+import { blockBookValidator } from '../../domain/interfaces/middleware/createBlockBookValidation';
+import { CreateBlockBook } from '../../usecases/books/createBlockBook';
+import { DeleteBlockBook } from '../../usecases/books/deleteBlockBook';
+import { GetBookKid } from '../../usecases/books/getBooksKid';
 
 const router = Router();
 
@@ -24,6 +28,9 @@ const isAdminUsecase = new ParentIsAdmin(manageParentRepository);
 const getBooksByLevelUsecase = new GetBooksByLevel(manageBooksRepository);
 const getBookPdfUsecase = new GetBookPdf(manageBooksRepository);
 const getExperienceUsecase = new GetExperienceKid(manageKidRepository);
+const createBlockBookUsecase = new CreateBlockBook(manageBooksRepository);
+const deleteBlockBookUsecase = new DeleteBlockBook(manageBooksRepository);
+const getBooksKidUsecase = new GetBookKid(manageBooksRepository);
 
 const booksCheckoutController = new BooksCheckoutController(
   createBookUsecase,
@@ -31,6 +38,9 @@ const booksCheckoutController = new BooksCheckoutController(
   getBooksByLevelUsecase,
   getBookPdfUsecase,
   getExperienceUsecase,
+  createBlockBookUsecase,
+  deleteBlockBookUsecase,
+  getBooksKidUsecase,
 );
 
 const storage = multer.memoryStorage();
@@ -67,6 +77,27 @@ router.get(
   [...getBookPdfValidator],
   (req: Request, res: Response, next: NextFunction) =>
     booksCheckoutController.getBookPdf(req, res, next),
+);
+
+router.post(
+  '/books/block',
+  [...blockBookValidator],
+  (req: Request, res: Response, next: NextFunction) =>
+    booksCheckoutController.createBlockBook(req, res, next),
+);
+
+router.post(
+  '/books/deleteBlock',
+  [...blockBookValidator],
+  (req: Request, res: Response, next: NextFunction) =>
+    booksCheckoutController.deleteBlockBook(req, res, next),
+);
+
+router.get(
+  '/books/listKid',
+  [...getBooksByLevelValidator],
+  (req: Request, res: Response, next: NextFunction) =>
+    booksCheckoutController.getBooksKid(req, res, next),
 );
 
 export { router as booksCheckoutRouter };

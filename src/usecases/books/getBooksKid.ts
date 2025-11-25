@@ -1,6 +1,6 @@
 import { ManageBooksRepo } from '../../domain/interfaces/repositories/ManageBooksRepo';
 
-export class GetBooksByLevel {
+export class GetBookKid {
   constructor(private manageBooks: ManageBooksRepo) {}
 
   async execute(
@@ -9,11 +9,6 @@ export class GetBooksByLevel {
     limit: number,
     childrenId: number,
   ) {
-    return await this.manageBooks.getBooksForParent(
-      level,
-      page,
-      limit,
-      childrenId,
-    );
+    return await this.manageBooks.getBooksKid(level, page, limit, childrenId);
   }
 }
