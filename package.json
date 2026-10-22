@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "tekko_back",
   "version": "1.0.0",
   "description": "Backend using Clean Architecture with TypeScript",
@@ -12,6 +12,9 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "engines": {
+    "node": ">=22.23.4"
+  },
   "dependencies": {
     "@uploadthing/mime-types": "^0.3.6",
     "axios": "^1.10.0",
